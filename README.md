@@ -1,245 +1,62 @@
-🎓 EduMind AI – AI-Powered Student Learning Assistant
+# EduMind AI
 
-An intelligent learning platform designed to help students study smarter, track their academic progress, and prepare effectively for examinations using AI-powered assistance and personalized learning analytics.
+EduMind AI is a local-first student learning assistant rebuilt from the original EduMind AI project.
 
-EduMind AI goes beyond traditional learning platforms by introducing an Exam Readiness Meter that evaluates a student's preparation level and estimates how ready they are for an upcoming examination.
+## What is included
 
----
+- React/Vite frontend
+- Node.js/Express backend
+- MongoDB/Mongoose persistence
+- JWT authentication
+- PDF upload and document management
+- AI chat, summaries, flashcards, and quizzes
+- Progress dashboard and profile flows
 
-🚀 Key Features
+## Run locally
 
-1. 🤖 AI Learning Assistant
+### Requirements
 
-- AI-powered chatbot for academic queries.
-- Explains complex topics in simple language.
-- Generates topic summaries and important notes.
-- Provides contextual answers to students' questions.
+- Node.js 20+
+- MongoDB running locally, or an approved MongoDB connection string
+- A Gemini API key only for the AI-generation routes
 
-2. 📊 Exam Readiness Meter (Unique Feature)
+### Backend
 
-A personalized preparation analysis system that estimates how ready a student is for an upcoming examination.
+```bash
+cd Backend
+npm install
+copy .env.example .env
+npm run dev
+```
 
-Instead of simply tracking completed chapters, EduMind AI calculates a readiness score using multiple academic performance indicators.
+The API runs on `http://localhost:8000`.
 
-Readiness score is calculated using:
+### Frontend
 
-Parameter| Weight
-Syllabus Completion| 25%
-Practice Test Performance| 30%
-Topic-wise Accuracy| 20%
-Revision Consistency| 15%
-Study Consistency| 10%
-Total| 100%
+```bash
+cd Frontend
+npm install
+npm run dev
+```
 
-Example:
+The frontend uses `http://localhost:8000` by default. To change it, create `Frontend/.env` with:
 
-A student preparing for a Java examination receives:
+```
+VITE_API_URL=http://localhost:8000
+```
 
-- Syllabus Completion: 85%
-- Practice Test Performance: 72%
-- Topic-wise Accuracy: 80%
-- Revision Consistency: 60%
-- Study Consistency: 90%
+## Environment
 
-The system calculates a weighted readiness score and displays it through a visual progress meter.
+Copy `Backend/.env.example` to `Backend/.env`. Never commit real credentials.
 
-Readiness Levels:
+- `MONGODB_URI` and `JWT_SECRET` are required.
+- `GEMINI_API_KEY` is required only for AI generation features.
+- `FRONTEND_URL` should match the local frontend origin.
 
-- 🔴 0–39%: Not Ready – More preparation required.
-- 🟠 40–59%: Needs Improvement – Focus on weak topics.
-- 🟡 60–79%: Almost Ready – Revise and practice more.
-- 🟢 80–100%: Exam Ready – Maintain consistency.
+## Current scope
 
-Additional capabilities:
+The current codebase is a Node/Express/MongoDB implementation. The Java/Spring Boot, MySQL, Groq, exam-readiness meter, and smart-planner items from the original concept README remain future roadmap work and are not presented as completed features.
 
-- Identifies weak subjects and topics.
-- Recommends what to study next.
-- Tracks readiness improvements over time.
-- Updates the score as students complete tests and revision activities.
-- Provides personalized preparation recommendations.
+## Source
 
-3. 📚 Smart Study Planner
-
-- Create personalized study schedules.
-- Set daily and weekly learning goals.
-- Track completed and pending topics.
-- Organize subjects and learning materials.
-
-4. 📝 AI Quiz Generator
-
-- Generate quizzes from selected topics.
-- Support multiple-choice questions.
-- Evaluate answers automatically.
-- Display scores and performance analytics.
-
-5. 📈 Learning Analytics Dashboard
-
-- Monitor overall learning progress.
-- Visualize quiz performance.
-- Track subject-wise accuracy.
-- Identify areas requiring improvement.
-
-6. 📖 Notes & Summarization
-
-- Generate concise notes using AI.
-- Summarize lengthy educational content.
-- Organize notes subject-wise.
-- Save important learning resources.
-
----
-
-🛠️ Tech Stack
-
-Frontend
-
-- React.js
-- Tailwind CSS
-- Vite
-
-Backend (Planned / In Development)
-
-- Java
-- Spring Boot
-- REST APIs
-
-Database
-
-- MySQL
-
-AI Integration
-
-- Groq API
-- LLM-powered educational assistance
-
-Development Tools
-
-- Git & GitHub
-- Postman
-- VS Code
-- IntelliJ IDEA
-
----
-
-🏗️ System Architecture
-
-             STUDENT
-                |
-                v
-       REACT FRONTEND
-                |
-                v
-        REST API LAYER
-                |
-                v
-       SPRING BOOT BACKEND
-                |
-       +--------+--------+
-       |        |        |
-       v        v        v
-    Student   Learning  Exam
-    Module    Module    Module
-       |        |        |
-       +--------+--------+
-                |
-                v
-          MYSQL DATABASE
-                |
-                v
-          AI INTEGRATION
-             (Groq API)
-
----
-
-📂 Project Modules
-
-Module| Responsibility
-Authentication| Student registration and login
-Student Dashboard| Personalized learning overview
-AI Assistant| Academic question answering
-Study Planner| Study schedules and goals
-Quiz Module| Quiz generation and evaluation
-Exam Readiness| Preparation score calculation
-Analytics| Academic performance tracking
-Notes Module| AI-powered summaries and notes
-
----
-
-🧠 Exam Readiness Meter – Implementation Logic
-
-The readiness score uses a weighted scoring algorithm.
-
-public double calculateReadiness(
-        double syllabusCompletion,
-        double testPerformance,
-        double topicAccuracy,
-        double revisionConsistency,
-        double studyConsistency) {
-
-    return (syllabusCompletion * 0.25)
-         + (testPerformance * 0.30)
-         + (topicAccuracy * 0.20)
-         + (revisionConsistency * 0.15)
-         + (studyConsistency * 0.10);
-}
-
-Readiness classification:
-
-public String getReadinessLevel(double score) {
-
-    if (score < 40) return "Not Ready";
-    if (score < 60) return "Needs Improvement";
-    if (score < 80) return "Almost Ready";
-
-    return "Exam Ready";
-}
-
-The score is recalculated whenever relevant academic performance data changes.
-
-Note: These weights are an initial configurable scoring model, not a scientifically validated prediction of examination results.
-
----
-
-🎯 Project Objectives
-
-- Make personalized education more accessible.
-- Encourage consistent study habits.
-- Help students identify academic weaknesses.
-- Improve examination preparation through data-driven insights.
-- Integrate AI into everyday learning workflows.
-
----
-
-🔮 Future Enhancements
-
-- AI-generated personalized learning paths.
-- PDF and document-based question generation.
-- Spaced repetition and smart revision reminders.
-- Predicted examination performance based on historical data.
-- AI-powered weak-topic detection.
-- Adaptive quizzes based on student performance.
-- Gamification, achievements, and learning streaks.
-
----
-
-👩‍💻 Project Information
-
-Project Name: EduMind AI
-Category: AI-Powered EdTech Platform
-Development Approach: Full-Stack Development
-Target Audience: Students and Self-Learners
-
----
-
-⭐ Why EduMind AI?
-
-Most learning platforms focus on delivering educational content.
-
-EduMind AI focuses on a more important question:
-
-"Am I actually prepared for my examination?"
-
-By combining AI assistance, learning analytics, personalized recommendations, and the Exam Readiness Meter, EduMind AI aims to transform how students approach learning and examination preparation.
-
----
-
-Built with the vision of making learning smarter, more personalized, and measurable.
+The application source originated from `Nikita-Bhange/EduMind_Ai` and is being rebuilt in `Iqra403/Edumind-AI`.

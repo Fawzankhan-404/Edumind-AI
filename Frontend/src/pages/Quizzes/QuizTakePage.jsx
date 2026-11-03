@@ -1,0 +1,249 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import quizService from '../../services/quizService';
+import PageHeader from '../../components/common/PageHeader';
+import Spinner from '../../components/common/Spinner';
+import toast from 'react-hot-toast';
+
+const QuizTakePage = () => {
+  const { quizId } = useParams();
+  const navigate = useNavigate();
+
+  const [quiz, setQuiz] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState("");
+  const [selectedAnswers, setSelectedAnswers] = useState({});
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const fetchQuiz = async () => {
+      setLoading(true);
+      setFetchError("");
+      setQuiz(null);
+      setSelectedAnswers({});
+      setCurrentQuestionIndex(0);
+
+      try {
+        const response = await quizService.getQuizById(quizId);
+        const quizData = response?.data ?? response ?? null;
+
+        if (!quizData || !Array.isArray(quizData.questions) || quizData.questions.length === 0) {
+          setFetchError("Quiz not found or has no questions.");
+          return;
+        }
+
+        setQuiz(quizData);
+      } catch (error) {
+        const message = error?.error || error?.message || 'Failed to fetch quiz.';
+        setFetchError(message);
+        toast.error(message);
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchQuiz();
+  }, [quizId]);
+
+  const handleOptionChange = (questionId, optionIndex) => {
+    setSelectedAnswers((prev) => ({
+      ...prev,
+      [questionId]: optionIndex,
+    }));
+  };
+
+  const handleNextQuestion = () => {
+    if (currentQuestionIndex < quiz.questions.length - 1) {
+      setCurrentQuestionIndex((prev) => prev + 1);
+    }
+  };
+
+  const handlePreviousQuestion = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex((prev) => prev - 1);
+    }
+  };
+
+  const handleSubmitQuiz = async () => {
+    setSubmitting(true);
+    try {
+      const formattedAnswers = Object.keys(selectedAnswers).map((questionId) => {
+        const question = quiz.questions.find(q => q._id === questionId);
+        const questionIndex = quiz.questions.findIndex(q => q._id === questionId);
+        const optionIndex = selectedAnswers[questionId];
+        const selectedAnswer = question.options[optionIndex];
+
+        return { questionIndex, selectedAnswer };
+      });
+
+      await quizService.submitQuiz(quizId, formattedAnswers);
+      toast.success('Quiz submitted successfully!');
+      navigate(`/quizzes/${quizId}/results`);
+    } catch (error) {
+        toast.error(error.message || 'Failed to submit quiz.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Spinner />
+      </div>
+    );
+  }
+
+  if (fetchError || !quiz || !quiz.questions || quiz.questions.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <p className="text-slate-600 text-lg">
+            {fetchError || 'Quiz not found or has no questions.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const currentQuestion = quiz.questions[currentQuestionIndex];
+  const isAnswered = selectedAnswers.hasOwnProperty(currentQuestion._id);
+  const answeredCount = Object.keys(selectedAnswers).length;
+
+  return (
+    <div className="max-w-4xl mx-auto">
+      <PageHeader title={quiz.title || 'Take Quiz'} />
+
+      {/* Progress Bar */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+            Question {currentQuestionIndex + 1} of {quiz.questions.length}
+          </span>
+          <span className="text-sm text-slate-500 dark:text-slate-400">
+            {answeredCount} answered
+          </span>
+        </div>
+
+        <div className="relative h-2 bg-slate-100 dark:bg-[#242424] rounded-full overflow-hidden">
+          <div
+            className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-teal-500 dark:from-[#FF3CAC] dark:to-[#784BA0] rounded-full transition-all duration-100"
+            style={{
+              width: `${((currentQuestionIndex + 1) / quiz.questions.length) * 100}%`
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Question card */}
+      <div className="bg-white/80 dark:bg-[#151515]/95 backdrop-blur-xl border-2 border-slate-200 dark:border-[#2f2f2f] rounded-2xl shadow-xl shadow-slate-200/50 dark:shadow-[#7A00FF]/20 p-6 ">
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-linear-to-r from-emerald-50 to-teal-50 dark:from-[#2a1830] dark:to-[#1f1a33] border border-emerald-200 dark:border-[#784BA0]/50 rounded-xl ">
+          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"/>
+          <span className="text-sm font-semibold text-emerald-700 dark:text-[#ffb3dc]">
+            Question {currentQuestionIndex + 1}
+          </span>
+        </div>
+            <h3 className='text-lg font-semibold text-slate-900 dark:text-slate-100 mb-6 leading-relaxed'>{currentQuestion.question}</h3>
+        {/* Options */}
+        <div className="space-y-3">
+          {currentQuestion.options.map((option, index) => {
+            const isSelected = selectedAnswers[currentQuestion._id] === index;
+
+            return (
+              <label
+                key={index}
+                className={`group flex items-center p-3 border-2 rounded-xl cursor-pointer transition-all ${
+                  isSelected
+                    ? 'border-emerald-500 bg-emerald-50 dark:border-[#FF3CAC] dark:bg-[#2a1830]'
+                    : 'border-slate-200 bg-slate-50 hover:border-slate-300 dark:border-[#2f2f2f] dark:bg-[#1c1c1c] dark:hover:border-[#784BA0]'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name={`question-${currentQuestion._id}`}
+                  value={index}
+                  checked={isSelected}
+                  onChange={() => handleOptionChange(currentQuestion._id, index)}
+                />
+
+              {/* custom radio button */}
+              <div
+                className={`shrink-0 w-5 h-5 rounded-full border-2 transition-all duration-200 flex items-center justify-center ${
+                  isSelected
+                    ? "border-emerald-500 bg-emerald-500 dark:border-[#FF3CAC] dark:bg-[#FF3CAC]"
+                    : "border-slate-300 bg-white group-hover:border-emerald-400 dark:border-slate-600 dark:bg-[#101010] dark:group-hover:border-[#784BA0]"
+                }`}
+              >
+                {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
+              </div>
+                <span className="ml-4 text-sm font-medium text-slate-900 dark:text-slate-100">
+                  {option}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+
+        {/* Navigation */}
+        <div className="flex items-center justify-between mt-6">
+          <button
+            onClick={handlePreviousQuestion}
+            disabled={currentQuestionIndex === 0 || submitting}
+            className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-[#1c1c1c] dark:text-slate-200 dark:hover:bg-[#242424]"
+          >
+            Previous
+          </button>
+
+          {currentQuestionIndex === quiz.questions.length - 1 ? (
+            <button
+              onClick={handleSubmitQuiz}
+              disabled={submitting}
+              className="rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2 text-sm font-semibold text-white transition hover:from-emerald-600 hover:to-teal-600 disabled:cursor-not-allowed disabled:opacity-50 dark:from-[#FF3CAC] dark:to-[#784BA0]"
+            >
+              {submitting ? 'Submitting...' : 'Submit Quiz'}
+            </button>
+          ) : (
+            <button
+              onClick={handleNextQuestion}
+              disabled={submitting}
+              className="rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2 text-sm font-semibold text-white transition hover:from-emerald-600 hover:to-teal-600 disabled:cursor-not-allowed disabled:opacity-50 dark:from-[#FF3CAC] dark:to-[#784BA0]"
+            >
+              Next
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Question Dots */}
+      <div className="mt-6 flex justify-center gap-2 flex-wrap">
+        {quiz.questions.map((_, index) => {
+          const isCurrent = index === currentQuestionIndex;
+          const isAnsweredQuestion = selectedAnswers.hasOwnProperty(
+            quiz.questions[index]._id
+          );
+
+          return (
+            <button
+              key={index}
+              onClick={() => setCurrentQuestionIndex(index)}
+              disabled={submitting}
+              className={`w-8 h-8 rounded-lg text-xs font-semibold ${
+                isCurrent
+                  ? 'bg-emerald-500 text-white dark:bg-[#FF3CAC]'
+                  : isAnsweredQuestion
+                  ? 'bg-emerald-100 text-emerald-700 dark:bg-[#2a1830] dark:text-[#ffb3dc]'
+                  : 'bg-slate-100 text-slate-600 dark:bg-[#1c1c1c] dark:text-slate-400'
+              }`}
+            >
+              {index + 1}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+export default QuizTakePage;

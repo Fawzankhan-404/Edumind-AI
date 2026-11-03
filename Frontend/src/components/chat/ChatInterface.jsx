@@ -1,0 +1,208 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Send, MessageSquare, Sparkles } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import aiService from '../../services/aiService';
+import { useAuth } from '../../context/AuthContext';
+import Spinner from '../common/Spinner';
+import MarkdownRender from '../common/MarkdownRender';
+
+const ChatInterface = () => {
+  const { id: documentId } = useParams();
+  const { user } = useAuth();
+
+  const [history, setHistory] = useState([]);
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    const fetchChatHistory = async () => {
+      try {
+        setInitialLoading(true);
+        const response = await aiService.getChatHistory(documentId);
+        setHistory(response.data);
+      } catch (error) {
+        console.error('Error fetching chat history:', error);
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+
+    fetchChatHistory();
+  }, [documentId]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [history]);
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!message.trim()) return;
+
+    const userMessage = {
+      role: 'user',
+      content: message,
+      timestamp: new Date()
+    };
+
+    setHistory(prev => [...prev, userMessage]);
+    setMessage('');
+    setLoading(true);
+
+    try {
+      const response = await aiService.chat(documentId, userMessage.content);
+
+      const assistantMessage = {
+        role: 'assistant',
+        content: response.data.answer,
+        timestamp: new Date(),
+        relevantChunks: response.data.relevantChunks
+      };
+
+      setHistory(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Chat error:', error);
+
+      const errorMessage = {
+        role: 'assistant',
+        content: 'Something went wrong. Please try again.',
+        timestamp: new Date()
+      };
+
+      setHistory(prev => [...prev, errorMessage]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+
+  const renderMessage = (msg, index) => {
+    const isUser = msg.role === 'user';
+
+    return (
+      <div key={index} className={`flex items-start gap-3 my-4 ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
+        {!isUser &&  (
+          <div className="w-9 h-9 rounded-xl bg-linear-to-br from-slate-400 to-slate-500 shadow-lg flex items-center justify-center">
+            <Sparkles className="w-4 h-4 text-white" strokeWidth={2} />
+          </div>
+        )}
+
+        <div className={`max-w-lg p-4  rounded-2xl shadow-sm ${isUser ? 'bg-linear-to-br from-emerald-500 to-teal-500 text-white dark:from-[#FF3CAC] dark:to-[#784BA0]' : 'bg-white dark:bg-[#151515] border border-slate-200/60 dark:border-[#2f2f2f]'}`}>
+        {isUser ? (
+          <p>{msg.content}</p>  
+
+        ) : (
+          <div className="">
+          <MarkdownRender content={msg.content} />
+          </div>
+        )}
+        </div>
+        {isUser && (
+          <div className="w-9 h-9 rounded-xl bg-linear-to-br from-emerald-500 to-teal-500 shadow-lg flex items-center justify-center">
+            {user?.username?.charAt(0).toUpperCase() || <MessageSquare className="w-4 h-4 text-white" strokeWidth={2} />}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  if (initialLoading) {
+    return (
+      <div className="flex flex-col h-[70vh] bg-white/80 dark:bg-[#151515]/95 backdrop-blur-xl border border-slate-200/60 dark:border-[#2f2f2f] rounded-2xl items-center justify-center shadow-xl shadow-slate-200 dark:shadow-[#7A00FF]/20">
+        <div className="w-14 h-14 rounded-2xl bg-linear-to-br from-emerald-100 to-teal-100 dark:from-[#2a1830] dark:to-[#1f1a33] flex items-center justify-center mb-4">
+          <MessageSquare className="w-7 h-7 text-emerald-600 dark:text-[#ff8bcb]" strokeWidth={2} />
+        </div>
+
+        <Spinner />
+
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-3 font-medium">
+          Loading chat history...
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-[70vh] bg-white/80 dark:bg-[#151515]/95 backdrop-blur-xl border border-slate-200/60 dark:border-[#2f2f2f] rounded-2xl shadow-xl shadow-slate-200 dark:shadow-[#7A00FF]/20 overflow-hidden">
+      
+      {/* Messages Area */}
+      <div className="flex-1 p-6 overflow-y-auto bg-linear-to-br from-slate-50/50 via-white/50 to-slate-100 dark:from-[#101010] dark:via-[#151515] dark:to-[#1c1c1c]">
+        
+        {history.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center">
+            
+            <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-emerald-100 to-teal-100 dark:from-[#2a1830] dark:to-[#1f1a33] flex items-center justify-center mb-4 shadow-lg shadow-emerald-300 dark:shadow-[#7A00FF]/25">
+              <MessageSquare className="w-8 h-8 text-emerald-600 dark:text-[#ff8bcb]" strokeWidth={2} />
+            </div>
+
+            <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-2">
+              Start a conversation
+            </h3>
+
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Ask me anything about the document!
+            </p>
+          </div>
+        ) : (
+          <>
+            {history.map(renderMessage)}
+          
+          </>
+        )}
+
+        {/* Typing Indicator */}
+          <div ref={messagesEndRef} />
+        {loading && (
+          <div className="flex items-center gap-3 my-4">
+            <div className="w-9 h-9 rounded-xl bg-linear-to-br from-emerald-400 to-teal-500 shadow-lg flex items-center justify-center">
+              <Sparkles className="w-4 h-4 text-white" strokeWidth={2} />
+            </div>
+
+            <div className="flex items-center gap-2 px-4 py-3 rounded-2xl rounded-bl-md bg-white dark:bg-[#151515] border border-slate-200/10 dark:border-[#2f2f2f] shadow-sm">
+            <div className="flex gap-1">
+              <span className='w-2 h-2 bg-slate-400 rounded-full animate-bounce' style={{ animationDelay: "0ms" }}></span>
+              <span className='w-2 h-2 bg-slate-400 rounded-full animate-bounce' style={{ animationDelay: "150ms" }}></span>
+              <span className='w-2 h-2 bg-slate-400 rounded-full animate-bounce' style={{ animationDelay: "300ms" }}></span>
+            </div>
+          </div>
+          </div>
+        )}
+      </div>
+
+      {/* Input Area */}
+      <div>
+        {/* Input components go here */}
+        <div className="p-4 border-t border-slate-200/60 dark:border-[#2f2f2f] bg-white/80 dark:bg-[#151515]">
+          <form onSubmit={handleSendMessage} className="flex items-center gap-3 ">
+            <input
+              type="text"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Ask me follow-up questions..."
+              disabled={loading}
+              className="flex-1 px-4 py-2 rounded-2xl bg-white dark:bg-white text-black placeholder-slate-400 border border-slate-200/60 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-transparent"
+            />
+            <button
+              type="submit"
+              disabled={loading || !message.trim()}
+              className="shrink-0 w-12 h-12 bg-linear-to-br rounded-full flex items-center from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:from-emerald-300 disabled:to-teal-300 transition-colors"
+            >
+              <Send className="w-5 h-5 ml-2.5 text-white" strokeWidth={3} />
+            </button>
+          </form>
+
+        </div>
+      </div>
+
+    </div>
+  );
+};
+
+export default ChatInterface;
