@@ -4,12 +4,18 @@ import { GoogleGenAI, createPartFromBase64, createPartFromUri } from '@google/ge
 
 dotenv.config();
 
-if (!process.env.GEMINI_API_KEY) {
-  console.error('FATAL ERROR: GEMINI_API_KEY is not set in the environment variables.');
-  process.exit(1);
-}
+const ai = process.env.GEMINI_API_KEY
+  ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
+  : null;
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const requireGemini = () => {
+  if (!ai) {
+    const error = new Error('AI features are disabled. Set GEMINI_API_KEY to enable them.');
+    error.statusCode = 503;
+    throw error;
+  }
+  return ai;
+};
 
 // ─── Model config ────────────────────────────────────────────────────────────
 // gemini-2.5-flash  → fast + accurate (recommended)
@@ -76,7 +82,7 @@ const normalizeDifficulty = (difficulty = 'medium') => {
 
 export const uploadPdfAndCreatePart = async (filePath, displayName = 'document.pdf') => {
   try {
-    const uploadedFile = await ai.files.upload({
+    const uploadedFile = await requireGemini().files.upload({
       file: filePath,
       config: {
         mimeType: 'application/pdf',
@@ -147,7 +153,7 @@ Return ONLY a valid JSON array, no markdown, no explanation:
 ]`;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await requireGemini().models.generateContent({
       model: MODEL,
       contents: buildContents(prompt, source, 40000),
     });
@@ -215,7 +221,7 @@ Return ONLY a valid JSON array, no markdown, no explanation:
 ]`;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await requireGemini().models.generateContent({
       model: MODEL,
       contents: buildContents(prompt, source, 40000),
     });
@@ -296,7 +302,7 @@ Highlight any specific facts, values, clinical examples, or case studies mention
 Bullet list of the 5–10 most important takeaways for exam preparation.`;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await requireGemini().models.generateContent({
       model: MODEL,
       contents: buildContents(prompt, source, 40000),
     });
@@ -327,7 +333,7 @@ Question: ${question}
 Answer:`;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await requireGemini().models.generateContent({
       model: MODEL,
       contents: buildContents(prompt, source, 30000),
     });
@@ -358,7 +364,7 @@ ${context.substring(0, 15000)}
 --- End Context ---`;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await requireGemini().models.generateContent({
       model: MODEL,
       contents: buildContents(prompt, source, 15000),
     });
@@ -438,7 +444,7 @@ ${context.substring(0, 15000)}
 
 // export const uploadPdfAndCreatePart = async (filePath, displayName = 'document.pdf') => {
 //   try {
-//     const uploadedFile = await ai.files.upload({
+//     const uploadedFile = await requireGemini().files.upload({
 //       file: filePath,
 //       config: {
 //         mimeType: 'application/pdf',
@@ -499,7 +505,7 @@ ${context.substring(0, 15000)}
 // `;
 
 //   try {
-//     const response = await ai.models.generateContent({
+//     const response = await requireGemini().models.generateContent({
 //       model: 'gemini-2.5-flash-lite',
 //       contents: buildContents(prompt, source),
 //     });
@@ -558,7 +564,7 @@ ${context.substring(0, 15000)}
 // `;
 
 //   try {
-//     const response = await ai.models.generateContent({
+//     const response = await requireGemini().models.generateContent({
 //       model: 'gemini-2.5-flash-lite',
 //       contents: buildContents(prompt, source),
 //     });
@@ -620,7 +626,7 @@ ${context.substring(0, 15000)}
 // 3. Important details or examples`;
 
 //   try {
-//     const response = await ai.models.generateContent({
+//     const response = await requireGemini().models.generateContent({
 //       model: "gemini-2.5-flash-lite",
 //       contents: buildContents(prompt, source, 20000),
 //     });
@@ -656,7 +662,7 @@ ${context.substring(0, 15000)}
 // Answer:`;
 
 //   try {
-//     const response = await ai.models.generateContent({
+//     const response = await requireGemini().models.generateContent({
 //       model: "gemini-2.5-flash-lite",
 //       contents: buildContents(prompt, source, 12000),
 //     });
@@ -683,7 +689,7 @@ ${context.substring(0, 15000)}
 // ${context.substring(0, 10000)}`;
 
 //   try {
-//     const response = await ai.models.generateContent({
+//     const response = await requireGemini().models.generateContent({
 //       model: 'gemini-2.5-flash-lite',
 //       contents: buildContents(prompt, source, 10000),
 //     });
