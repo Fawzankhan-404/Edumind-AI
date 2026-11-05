@@ -29,7 +29,14 @@ const generateQuiz =  async(documentId, options)=>{
 
     return response.data;
   }catch(error){
-    throw error.response?.data || {message: 'failed to generate quiz'}
+    const responseData = error.response?.data;
+    throw {
+      message:
+        responseData?.error ||
+        responseData?.message ||
+        error.message ||
+        'Failed to generate quiz',
+    };
   }
 }
 
